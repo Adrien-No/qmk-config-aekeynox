@@ -1,3 +1,10 @@
+# Short guide usage.
+
+1. modifiers keymap.c avec les keycodes indiqués à https://docs.qmk.fm/keycodes
+2. générer et compiler
+3. brancher le clavier et flasher.
+
+
 # qmk-config-aekeynox
 
 [QMK](https://qmk.fm/) keymap implementations for [OneDeadKey](https://github.com/OneDeadKey) keyboard layouts.
