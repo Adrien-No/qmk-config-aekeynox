@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../shared/keycodes_aekeynox.h"
+#include "../shared/keycodes.h"
 #include "../shared/layouts.h"
 
 // Symbols layer access
@@ -145,7 +145,7 @@
 #    define RTHUMB_TUCK  MO(_symbols)
 
 #elif defined HT_THUMB_TAPS
-#    define LTHUMB_TUCK SHIFT_CAPS
+#    define LTHUMB_TUCK OSM(MOD_LSFT)
 #    ifdef MAC_MODIFIERS
 #        define LTHUMB_REACH LCTL_T(_SE_REACH)
 #        define RTHUMB_REACH LGUI_T(KC_ENT)
@@ -163,7 +163,7 @@
 #    endif
 
 #elif defined HT_HOME_ROW_MODS
-#    define LTHUMB_TUCK  SHIFT_CAPS
+#    define LTHUMB_TUCK  OSM(MOD_LSFT)
 #    define LTHUMB_REACH LT(_SE_EXTRA, _SE_REACH)
 #    define RTHUMB_REACH LT(_SE_EXTRA, KC_ENT)
 #    define RTHUMB_TUCK  OSL(_symbols)
@@ -195,7 +195,7 @@
 #    define NAV_LTHUMB_TUCK  S(KC_TAB)
 #    define NAV_LTHUMB_REACH __
 #else
-#    define NAV_LTHUMB_TUCK  OSM(MOD_LSFT)
+#    define NAV_LTHUMB_TUCK  KC_CAPS
 #    define NAV_LTHUMB_REACH S(KC_TAB)
 #endif
 
