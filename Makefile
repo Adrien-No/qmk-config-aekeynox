@@ -6,9 +6,9 @@
 
 QMK_HOME := $(HOME)/nextcloud/info/config/qmk_firmware
 KEYBOARD := crkbd/rev4_1/standard
-KEYMAP := selenium_adri
+KEYMAP := selenium
 LAYOUT := LAYOUT_split_3x6_3_ex2
-SOURCE := ./selenium-adri
+SOURCE := ./selenium
 
 .PHONY: generate compile flash
 
