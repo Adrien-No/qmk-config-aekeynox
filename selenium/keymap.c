@@ -21,6 +21,7 @@ enum custom_keycodes {
     LSK_RALT,           // EZ_LSK(RALT): go to base layer, then sticky RALT
     VIM_PREV,           // Alt+Left; morphs to Shift+Grave when LAlt/LGUI is held
     VIM_NEXT,           // Alt+Right; morphs to Grave when LAlt/LGUI is held
+    SHIFT_CAPS,         // one-shot Shift; morphs to CapsLock when Shift is held
 };
 
 // QMK implementation of the Selenium specification.
@@ -58,11 +59,11 @@ const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
                                   SYM_NUM_LAYER,  KC_SPC,  KC_ENT,        __,  __,  __
     ),
 
-    // 3. VimNav layer -- HJKL arrow cluster + GUI shortcuts (not accessible by default)
+    // 3. VimNav layer -- HJKL arrow cluster + mouse scroll + GUI shortcuts (not accessible by default)
     [_vim_nav] = SELENIUM_LAYOUT(
         __,  XX,       SC_CTL_W,  VIM_PREV,    VIM_NEXT,    XX,             KC_HOME,  KC_PGDN,  KC_PGUP,  KC_END,   KC_DEL,  __,
         __,  SC_ALL,   SC_SAVE,   S(KC_TAB),   KC_TAB,      XX,             KC_LEFT,  KC_DOWN,  KC_UP,    KC_RGHT,  XX,      __,
-        __,  SC_UNDO,  SC_CUT,    SC_COPY,     SC_PASTE,    SC_REDO,        XX,       XX,       XX,       XX,       XX,      __,
+        __,  SC_UNDO,  SC_CUT,    SC_COPY,     SC_PASTE,    SC_REDO,        MS_WHLL,  MS_WHLD,  MS_WHLU,  MS_WHLR,  XX,      __,
 
                      KC_CAPS,  LT(_fn_media, KC_DEL),  MO(_num_row),        __,  MO(_fn_media),  LSK_RALT
     ),
@@ -141,6 +142,44 @@ static void vim_next_action(void) {
     }
 }
 
+// SHIFT_CAPS: sticky Shift that reaches CapsLock on a double tap.
+// Hold = continuous Shift, tap = one-shot Shift, as OSM(MOD_LSFT) does.
+// A press while Shift is already down — the second tap, or any other Shift
+// source — taps CapsLock instead, with that Shift masked out of the tap and a
+// pending sticky Shift consumed.
+static bool shift_caps_held = false;
+static bool shift_caps_used = false;
+
+static void shift_caps_press(void) {
+    const uint8_t oneshot = get_oneshot_mods() & MOD_MASK_SHIFT;
+    const uint8_t held    = get_mods() & MOD_MASK_SHIFT;
+
+    if (!oneshot && !held) {
+        register_mods(MOD_BIT(KC_LSFT));
+        shift_caps_held = true;
+        shift_caps_used = false;
+        return;
+    }
+
+    if (oneshot) { clear_oneshot_mods(); }
+    if (held) {
+        del_mods(held);
+        send_keyboard_report();
+    }
+    tap_code(KC_CAPS);
+    if (held) {
+        add_mods(held);
+        send_keyboard_report();
+    }
+}
+
+static void shift_caps_release(void) {
+    if (!shift_caps_held) { return; }
+    unregister_mods(MOD_BIT(KC_LSFT));
+    if (!shift_caps_used) { set_oneshot_mods(MOD_BIT(KC_LSFT)); }
+    shift_caps_held = false;
+}
+
 #ifdef ENABLE_MOD_HOLD_NAVIGATION
 // Mods pinned for the lifetime of the nav-layer thumb hold (0 = inactive).
 // These match VIM_PREV / VIM_NEXT's mod-morph trigger, which fires on LAlt or
@@ -166,6 +205,8 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
     if (record->event.pressed) {
         // Track whether another key was pressed while LSK_RALT is held
         if (lsk_ralt_held && keycode != LSK_RALT) { lsk_ralt_used = true; }
+        // Same for SHIFT_CAPS: a key pressed during the hold spends the Shift
+        if (shift_caps_held && keycode != SHIFT_CAPS) { shift_caps_used = true; }
     }
 
 #ifdef ENABLE_MOD_HOLD_NAVIGATION
@@ -208,6 +249,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
             case ODK_5: ODK5_SEQUENCE; return false;
             case VIM_PREV: vim_prev_action(); return false;
             case VIM_NEXT: vim_next_action(); return false;
+            case SHIFT_CAPS: shift_caps_press(); return false;
             case LSK_RALT:
                 layer_move(_base);
                 register_mods(MOD_BIT(KC_RALT));
@@ -217,6 +259,7 @@ bool process_record_user(uint16_t keycode, keyrecord_t *record) {
         }
     } else {
         switch (keycode) {
+            case SHIFT_CAPS: shift_caps_release(); return false;
             case LSK_RALT:
                 unregister_mods(MOD_BIT(KC_RALT));
                 if (!lsk_ralt_used) { set_oneshot_mods(MOD_BIT(KC_RALT)); }
